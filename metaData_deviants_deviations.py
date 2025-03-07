@@ -140,9 +140,10 @@ class GatherMetaData:
         # Main execution
         deviant_count = 0
         batch_size = 10  
+        unique_deviants_to_check = set(already_saved_deviants['user'].tolist())
         try:
-            unique_deviants_in_gallery = appended_gall_df['Author_name'].unique()
-            for deviant in unique_deviants_in_gallery:
+            
+            for deviant in already_saved_deviants_to_check:
                 if deviant not in visited_meta_deviants:
                     visited_meta_deviants.add(deviant)
                     deviant_count += 1

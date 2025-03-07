@@ -15,47 +15,8 @@ import pandas as pd
 from requests.exceptions import HTTPError
 import gc
 
-def find_bad_lines(filepath, delimiter=','):
-    """
-    Finds lines in a CSV that don't have a consistent number of columns.
 
-    Args:
-        filepath: Path to the CSV file.
-        delimiter: The column delimiter (default is comma).
-
-    Returns:
-        A list of line numbers (starting from 1) that have a different
-        number of columns than the first row.
-    """
-    bad_lines = []
-    try:
-        with open(filepath, 'r', encoding='utf-8') as f:
-            header = f.readline().strip()
-            expected_cols = len(header.split(delimiter))
-            for i, line in enumerate(f, start=2):  # Start at line 2 (line 1 is the header)
-                line = line.strip()
-                if not line:
-                    continue  # Skip empty lines
-                cols = len(line.split(delimiter))
-                if cols != expected_cols:
-                    bad_lines.append((i, cols))
-    except UnicodeDecodeError:
-        print(f"Error decoding file {filepath}. Trying with 'latin-1' encoding.")
-        with open(filepath, 'r', encoding='latin-1') as f:
-            header = f.readline().strip()
-            expected_cols = len(header.split(delimiter))
-            for i, line in enumerate(f, start=2):  # Start at line 2 (line 1 is the header)
-                line = line.strip()
-                if not line:
-                    continue  # Skip empty lines
-                cols = len(line.split(delimiter))
-                if cols != expected_cols:
-                    bad_lines.append((i, cols))
-
-    return bad_lines
-
-
-class DeviantArtRandomWalk:
+class DeviantArtWatchersFriends:
 
     def __init__(self, client_id, client_secret, TOKEN_URL, REDIRECT_URI):
         self.client_id = client_id
@@ -211,28 +172,48 @@ class DeviantArtRandomWalk:
             return [], []
 
         return watchers_pd, friends_pd
-    #Actual random Walk for gathering deviant data
-    def watchers_friends(self):
+
+    def append_unique_usernames(self, df1, df2, otpt_df):
+        """
+        Compares usernames in three DataFrames and appends unique usernames to a separate DataFrame.
+    
+        Args:
+            df1, df2, df3: The three DataFrames to compare.
+            output_df: The DataFrame to append the unique usernames to.
+        """
+    
+        # Combine usernames from all three DataFrames
+        all_usernames = pd.concat([df1["Deviant"], df2["Deviant"]])
+    
+        # Get unique usernames
+        unique_usernames = all_usernames.unique()
+    
+        # Create a DataFrame for unique usernames
+        unique_usernames_df = pd.DataFrame({"unique_dev": unique_usernames})
+    
+        # Append unique usernames to output_df
+        otpt_df = pd.concat([otpt_df, unique_usernames_df], ignore_index=True)
+    
+        return otpt_df
+    
+    def gather_watchers_friends(self):
         """Executes the random walk algorithm."""
         #current_tag = start_tag
         visited_deviants = set()
-       
-        dev_watcrs = "/mnt/hdd/maittewa/deviants_watchersRndmWalk03_2.csv"
-        dev_frnds = "/mnt/hdd/maittewa/deviants_friendsRndmWalk03_2.csv"
-        dev_df = pd.read_csv("/mnt/hdd/maittewa/deviants_profileRandomWalkerSince2003.csv")
-        already_saved_deviants = set(dev_df['user'].tolist()) 
         deviant_count = 0  # Keep track of processed deviants
         # Establish a single database connection outside the loop
         #count_for_reauth = 0
         deviant_batch = []
-        user_name = [] #, user_watchers, user_friends, deviatn_metadata = [], [], [], [] #user_profile,
-        if os.path.exists(dev_watcrs) and os.path.exists(dev_frnds):
-            df_wtchr = pd.read_csv(dev_watcrs)
-            df_frnd = pd.read_csv(dev_frnds)
-            visited_deviants.update(set(df_wtchr['Deviant'].tolist()))
-            visited_deviants.update(set(df_frnd['Deviant'].tolist()))
+        user_name = [] 
+        watchers = pd.read_csv("/mnt/hdd/maittewa/deviants_watchersRndmWalk03_2.csv")
+        friends = pd.read_csv("/mnt/hdd/maittewa/deviants_friendsRndmWalk03_2.csv")
+        unique_deviants = pd.DataFrame()
+        unique_deviants_to_gather = self.append_unique_usernames(watchers,friends,unique_deviants)
+        unique_dev_list = unique_deviants_to_gather["unique_dev"].tolist()
+        dev_watcrs = "/mnt/hdd/maittewa/deviants_watchersSnwball_1.csv"
+        dev_frnds = "/mnt/hdd/maittewa/deviants_friendsSnwBall_1.csv"
         try:
-            for deviant in already_saved_deviants:
+            for deviant in unique_dev_list:
                 if deviant not in visited_deviants:
                     deviant_count += 1
                     visited_deviants.add(deviant)
@@ -245,7 +226,7 @@ class DeviantArtRandomWalk:
                         
                     if deviant_watchers is not None and not isinstance(deviant_watchers, list) and not deviant_watchers.empty:  # Save only if not None, not a list and not empty:
                             print(f"fetched deviant watchers for {deviant}")
-                            deviant_watchers.to_csv("/mnt/hdd/maittewa/deviants_watchersRndmWalk03_2.csv", mode="a", header=not os.path.exists("/mnt/hdd/maittewa/deviants_watchersRndWalk03_2.csv"), index=False)
+                            deviant_watchers.to_csv(dev_watcrs, mode="a", header=not os.path.exists(dev_watcrs), index=False)
                             print(f"Saved {deviant} watchers")
                             time.sleep(5)
                     else:
@@ -255,7 +236,7 @@ class DeviantArtRandomWalk:
                                 
                     if deviant_friends is not None and not isinstance(deviant_friends, list) and not deviant_friends.empty:  # Save only if not None, not a list and not empty:
                             print(f"fetched deviant friends for {deviant}")
-                            deviant_friends.to_csv("/mnt/hdd/maittewa/deviants_friendsRndmWalk03_2.csv", mode="a", header=not os.path.exists("/mnt/hdd/maittewa/deviants_friendsRndmWalk03_2.csv"), index=False)
+                            deviant_friends.to_csv(dev_frnds, mode="a", header=not os.path.exists(dev_frnds), index=False)
                             print(f"Saved {deviant} friends")
                     else:
                             print(f"Empty deviant friends for {deviant}")
@@ -272,7 +253,7 @@ class DeviantArtRandomWalk:
 
  
                     
-        print("Random walk completed.")
+        print("Gathering of watchers and friends completed.")
 
 # Example usage:
 client_id = "42096"
@@ -281,7 +262,7 @@ TOKEN_URL = "https://www.deviantart.com/oauth2/token"
 REDIRECT_URI = "https://www.deviantart.com/oauth2/authorize"
 
 # Initialize token refresh timer
-random_walk = DeviantArtRandomWalk(client_id, client_secret, TOKEN_URL, REDIRECT_URI)
-random_walk.get_token()
-random_walk.refresh_token()
-random_walk.watchers_friends()
+wtchrs_frnds = DeviantArtWatchersFriends(client_id, client_secret, TOKEN_URL, REDIRECT_URI)
+wtchrs_frnds.get_token()
+wtchrs_frnds.refresh_token()
+wtchrs_frnds.gather_watchers_friends()
