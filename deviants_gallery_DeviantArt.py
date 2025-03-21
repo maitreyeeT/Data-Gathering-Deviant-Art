@@ -60,85 +60,62 @@ class DeviantArtGalleryInfo:
         elif response.status_code == 401:
             return 'get new token'
 
-
-    def parse_gallery_data(self, devGallery):
-        gallery_meta = pd.DataFrame()
+    def parse_gallery_data_fin2(self, devGallery):
+        gallery_meta = []  # Store parsed data as a list of dictionaries
         if devGallery is not None:
             get_gallery = devGallery.get("results")
             if get_gallery is not None:
-                for i in get_gallery: # Handle potential missing 'metadata' key
-                    content = i.get('content') # Get 'content' value, or None if missing
-                    a = {'Deviation_id': i['deviationid'],
-                         'Deviation_url': i['url'],
-                         'Deviation_title': i['title'],
-                         'Author_id': i['author']['userid'],
-                         'Author_name': i['author']['username'],
-                         'Author_type': i['author']['type'],
-                         'Published_on': i['published_time'],
-                         'Deviation_source': content.get('src') if content else None,
-                         'Deviation_height': content.get('height') if content else None,
-                         'Deviation_width': content.get('width') if content else None,
-                         'Deviation_transparency': content.get('transparency') if content else None,
-                         'Comments': i['stats']['comments'],
-                         'is_Mature': i['is_mature'],
-                         'is_Downloadable': i['is_downloadable'],
-                         'Favourites': i['stats']['favourites']}
-                    dict_pd = pd.DataFrame([a]).T  # Create DataFrame from a list of dictionaries
-                    dict_pd.columns = dict_pd.iloc[0]  # Set columns to the keys of the dictionary
-                    dict_pd = dict_pd[1:]  # Remove the first row (which contained the keys)
-                    #    dict_pd['tag_name'] = dict_pd['TagsInfo'].apply(lambda tags_list: [tag['tag_name'] for tag in tags_list])
-                    #    dict_pd['Sponsered'] = dict_pd['TagsInfo'].apply(lambda tags_list: [tag['sponsored'] for tag in tags_list])
-                    #    dict_pd['Sponser'] = dict_pd['TagsInfo'].apply(lambda tags_list: [tag['sponsor'] for tag in tags_list])
-                        
-                    gallery_meta = pd.concat([gallery_meta, dict_pd], ignore_index=True)
-                return (gallery_meta)
+                for i in get_gallery:
+                    content = i.get('content')
+    
+                    # Extract data and handle potential single-item lists/tuples
+                    deviation_id = i['deviationid']
+                    deviation_url = i['url']
+                    deviation_title = i['title']
+                    author_id = i['author']['userid']
+                    author_name = i['author']['username']
+                    author_type = i['author']['type']
+                    published_on = i['published_time']
+                    deviation_source = content.get('src') if content else None
+                    deviation_height = content.get('height') if content else None
+                    deviation_width = content.get('width') if content else None
+                    deviation_transparency = content.get('transparency') if content else None
+                    comments = i['stats']['comments']
+                    is_mature = i['is_mature']
+                    is_downloadable = i['is_downloadable']
+                    favourites = i['stats']['favourites']
+    
+                    # Check and extract values if necessary
+                    deviation_title = deviation_title[0] if isinstance(deviation_title, list) and len(deviation_title) > 0 else deviation_title
+                    # Apply similar logic to other fields if they might be single-item lists/tuples
+    
+                    # Append data as a dictionary to the list
+                    gallery_meta.append({
+                        'Deviation_id': deviation_id,
+                        'Deviation_url': deviation_url,
+                        'Deviation_title': deviation_title,
+                        'Author_id': author_id,
+                        'Author_name': author_name,
+                        'Author_type': author_type,
+                        'Published_on': published_on,
+                        'Deviation_source': deviation_source,
+                        'Deviation_height': deviation_height,
+                        'Deviation_width': deviation_width,
+                        'Deviation_transparency': deviation_transparency,
+                        'Comments': comments,
+                        'is_Mature': is_mature,
+                        'is_Downloadable': is_downloadable,
+                        'Favourites': favourites
+                    })
+    
+                # Create DataFrame outside the loop
+                return pd.DataFrame(gallery_meta)
             else:
                 print("Empty Gallery Data")
+                return pd.DataFrame()  # Return an empty DataFrame
         else:
             print("No gallery found")
-            return []
-
-    def parse_gallery_data_fin(self, gallery_data):
-        """Parses the gallery data returned by the DeviantArt API."""
-        results = gallery_data.get("results", [])  # Get results or an empty list if no 'results' key
-        parsed_data = []
-        if results is not None:
-            for item in results:
-                deviation_id = item.get("deviationid"),  # Use .get() to avoid KeyError
-                url = item.get("url"),
-                title = item.get("title"),
-                author_id = item.get("author",{}).get('userid'),
-                author_name = item.get("author",{}).get('username'),
-                author_type = item.get("author",{}).get('type'),
-                published_on = item.get('published_time'),
-                deviation_source= item.get('src'),
-                deviation_height= item.get('height'),
-                deviation_width= item.get('width'),
-                deviation_transparency = item.get('transparency'),
-                deviation_comments = item.get('stats', {}),
-                deviation_Favourites = item.get('stats', {})
-                # Add more fields as needed
-                if deviation_id is not None:
-                    parsed_data.append({
-                        "Deviation_id": deviation_id,
-                        "URL": url,
-                        "Title": title,
-                        "Author_id": author_id,
-                        "Author_name": author_name,
-                        "Author_type": author_type,
-                        "Published_on": published_on,
-                        "Deviation_source": deviation_source,
-                        "Deviation_height": deviation_height,
-                        "Deviation_width": deviation_width,
-                        "Deviation_transparency": deviation_transparency,
-                        "Deviation_comments": deviation_comments,
-                        "Deviation_Favourites": deviation_Favourites
-                        # Add more fields here
-                    })
-                else:
-                    print("Item skipped because no deviation_id found")
-        
-            return pd.DataFrame(parsed_data)
+            return pd.DataFrame()  # Return an empty DataFrame
 
     def get_gallery(self,username):
         headers = {"Authorization": f"Bearer {self.access_token}"}
@@ -161,7 +138,7 @@ class DeviantArtGalleryInfo:
                         gallery_data = response.json()
             
                         if gallery_data.get("results"):  # Check if 'results' key exists and is not empty
-                            parsed_gallery = self.parse_gallery_data_fin(gallery_data)  # Assuming parse_gallery is defined
+                            parsed_gallery = self.parse_gallery_data_fin2(gallery_data)  # Assuming parse_gallery is defined
                             if len(parsed_gallery) > 0:
                                 gallery_pd = pd.concat([gallery_pd, parsed_gallery])
                         else:
@@ -189,9 +166,9 @@ class DeviantArtGalleryInfo:
         """Executes the random walk algorithm."""
         visited_deviants = set() 
         #gallery_unique_devs = "/mnt/hdd/maittewa/gallery_deviant_name_nd_deviationIds.csv"
-        gall_data_path = "/mnt/hdd/maittewa/uniqueDev_gall_RndmWalk03_6.csv"
+        gall_data_path = "/mnt/hdd/maittewa/deviantArt_DeviantData/uniqueDev_gall_RndWalk03_6.csv"
         unique_deviants = pd.read_csv("/mnt/hdd/maittewa/uniqueDevs_gall_prof_RndmWalkr03.csv")
-        #columns_to_append = ['Author_name', 'Deviation_id']
+        columns_to_append = ['Author_name']
         #appended_gall_df = pd.DataFrame(columns=columns_to_append)
         #if os.path.exists(gallery_unique_devs):
          #   for chunk in pd.read_csv(gallery_unique_devs, chunksize=10000, header=0, usecols=columns_to_append, on_bad_lines='skip'):
@@ -199,6 +176,12 @@ class DeviantArtGalleryInfo:
          #       visited_deviants.update(appended_gall_df["Author_name"].unique())
         #print(f"Loaded unique deviants in gallery: {len(visited_deviants)}")
         
+        already_saved_deviants = pd.DataFrame(columns = columns_to_append)
+        if os.path.exists(gall_data_path):
+            for chunk in pd.read_csv(gall_data_path, chunksize=1000, header=0, usecols=columns_to_append, on_bad_lines='skip'):
+                already_saved_deviants = pd.concat([already_saved_deviants, chunk[columns_to_append]], ignore_index=True)
+                visited_deviants.update(already_saved_deviants["Author_name"].unique())
+        print(f"Loaded unique deviants already saved in the gallery: {len(visited_deviants)}, {visited_deviants}")    
         save_interval = 2
         unique_deviants_to_check = unique_deviants['UniqueValues'].tolist()
         deviant_count = 0
@@ -207,7 +190,7 @@ class DeviantArtGalleryInfo:
         #2.Call API for gathering the data and parsing it
         try:
             for deviant in unique_deviants_to_check:
-                #print(f"Total number of unique deviants are {len(visited_deviants)}")
+                print(f"Total number of unique deviants are {len(unique_deviants_to_check) - len(visited_deviants)}")
                 if deviant not in visited_deviants:
                     deviant_count += 1
                     visited_deviants.add(deviant)
@@ -217,6 +200,9 @@ class DeviantArtGalleryInfo:
                     if gallery is not None:
                         deviant_gall_data = pd.concat([deviant_gall_data, gallery])
                         print(f'Gathered and parsed gallery data for {deviant}')
+                        #print(f"Gallery dataframe: {deviant_gall_data.info()}")
+                        #print(f"Gallery dataframe: {deviant_gall_data.head()}")
+                        #print(f"Gallery dataframe: {deviant_gall_data.tail()}")
                     else:
                         print(f"No gallery data of {deviant} available")
                     
@@ -228,7 +214,8 @@ class DeviantArtGalleryInfo:
                         #deviant_gall_data[columns_to_append].to_csv(gallery_unique_devs, mode = "a", header=False, index=False)
                         print(f"Saved gallery info for {deviant}")  
                         #gall_df = pd.read_csv(gall_data_path)
-                        #print(f"Shape of the dataframe is {gall_df.info()}")
+                        
+
 
                     self.refresh_token()
 
