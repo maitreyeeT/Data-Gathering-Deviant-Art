@@ -7,12 +7,12 @@ from deviantAbtPgScrape import DeviantArtScraper
 
 # Read usernames from CSV
 scraper = DeviantArtScraper("42096", "97080792c6d30a4178965e41f1ca15de")
-usernames_df = pd.read_csv("/home/maitreyee/PycharmProjects/DataGatheringDeviantArt/Usernames_merged/gathered_usernames1.csv")  # Replace with your CSV file
+usernames_df = pd.read_csv("/mnt/hdd/maittewa/deviantArt_DeviantData/deviantArt_snwBall_fin/deviants_profileSnwball_fin1_clean.csv.gz")  # Replace with the correct csv file /home/maitreyee/PycharmProjects/DataGatheringDeviantArt/Usernames_merged/gathered_usernames1.csv
 
 # Keep track of already scraped usernames
 scraped_usernames = set()
-if os.path.exists("/home/maitreyee/PycharmProjects/DataGatheringDeviantArt/deviants60K_2.csv"):
-    existing_df = pd.read_csv("/home/maitreyee/PycharmProjects/DataGatheringDeviantArt/deviants60K_2.csv")
+if os.path.exists("/mnt/hdd/maittewa/deviantArt_DeviantData/deviants_snwballScraped_01_testing.csv.gz"):
+    existing_df = pd.read_csv("/mnt/hdd/maittewa/deviantArt_DeviantData/deviants_snwballScraped_01_testing.csv.gz")
     scraped_usernames.update(existing_df['username'].tolist())
 
 # Initialize an empty list to store scraped data
@@ -57,7 +57,7 @@ for i in range(0, len(usernames_df), batch_size):
     batch_df = pd.DataFrame(all_about_data)
 
     # Save the batch DataFrame to CSV (append if file exists)
-    batch_df.to_csv("/home/maitreyee/PycharmProjects/DataGatheringDeviantArt/deviants60K_2.csv", mode="a", header=not os.path.exists("/home/maitreyee/PycharmProjects/DataGatheringDeviantArt/deviants60K_2.csv"), index=False)
+    batch_df.to_csv("/mnt/hdd/maittewa/deviantArt_DeviantData/deviants_snwballScraped_01_testing.csv.gz", mode="a", header=not os.path.exists("/mnt/hdd/maittewa/deviantArt_DeviantData/deviants_snwballScraped_01_testing.csv.gz"), index=False)
 
     # Clear the list for the next batch
     all_about_data = []
