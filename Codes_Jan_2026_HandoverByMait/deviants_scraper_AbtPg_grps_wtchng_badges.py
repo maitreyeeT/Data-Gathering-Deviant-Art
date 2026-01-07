@@ -23,7 +23,7 @@ class DeviantArtScraperWithSelenium:
 
         Args:
             driver_path: Path to the WebDriver executable (e.g., 'chromedriver').
-                         If None, assumes the driver is in your system's PATH.
+                         If None, assumes the driver is in the system's PATH.
         """
         options = webdriver.ChromeOptions()
         options.add_argument('--headless')
