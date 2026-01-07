@@ -399,7 +399,7 @@ class DeviantArtWatchersFriends:
         print("Gathering of watchers and friends completed.")
 
 
-# Example usage:
+#Provide the values for the parameters
 client_id = "42096"
 client_secret = "97080792c6d30a4178965e41f1ca15de"
 TOKEN_URL = "https://www.deviantart.com/oauth2/token"
